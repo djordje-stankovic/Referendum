@@ -1,22 +1,66 @@
 <template>
   <v-container>
     <v-row>
-      <v-col v-for="proposal in proposals" :key="proposal.proposalId" cols="12" md="4">
-        <v-card class="ma-2" elevation="2">
-          <v-img :src="proposal.media[0] || 'https://via.placeholder.com/200'" height="200"></v-img>
-          <v-card-title>{{ proposal.title }}</v-card-title>
-          <v-card-subtitle>{{ proposal.municipality }}</v-card-subtitle>
-          <v-card-text>{{ proposal.summary }}</v-card-text>
+      <v-col cols="12" md="8" lg="8">
+        <v-card
+          v-for="proposal in proposals"
+          :key="proposal.proposalId"
+          class="mb-4"
+          variant="elevated"
+          @click="$router.push(`/proposal/${proposal.proposalId}`)"
+          style="cursor: pointer;"
+        >
+          <v-card-item>
+            <div class="d-flex align-center justify-space-between">
+              <div>
+                <div class="text-h6">{{ proposal.title }}</div>
+                <div class="text-caption text-medium-emphasis">
+                  {{ proposal.municipality }} • {{ proposal.category || 'General' }} • {{ proposal.createdAt?.slice(0,10) }}
+                </div>
+              </div>
+            </div>
+          </v-card-item>
+          <v-img
+            v-if="proposal.media && proposal.media.length"
+            :src="proposal.media[0]"
+            height="220"
+            cover
+          />
+          <v-card-text class="pt-3">
+            {{ proposal.summary }}
+          </v-card-text>
           <v-card-actions>
-            <v-btn color="primary" :to="`/proposal/${proposal.proposalId}`">View</v-btn>
-            <v-btn color="secondary">For ({{ proposal.votes.for }})</v-btn>
+            <v-spacer />
+            <v-chip color="secondary" variant="flat">For {{ proposal.votes?.for ?? 0 }}</v-chip>
           </v-card-actions>
+        </v-card>
+
+        <v-btn
+          color="primary"
+          icon="mdi-plus"
+          class="position-fixed"
+          style="right: 24px; bottom: 24px;"
+          size="large"
+          :to="'/create'"
+        />
+      </v-col>
+      <v-col cols="12" md="4" lg="4">
+        <v-card class="mb-4">
+          <v-card-title>Explore categories</v-card-title>
+          <v-divider></v-divider>
+          <v-list density="compact">
+            <v-list-item v-for="cat in categories" :key="cat" :title="cat" @click="filterBy(cat)" />
+          </v-list>
+        </v-card>
+        <v-card>
+          <v-card-title>Trending</v-card-title>
+          <v-divider></v-divider>
+          <v-list density="compact">
+            <v-list-item v-for="proposal in topProposals" :key="proposal.proposalId" :title="proposal.title" :to="`/proposal/${proposal.proposalId}`" />
+          </v-list>
         </v-card>
       </v-col>
     </v-row>
-    <v-btn fab color="primary" fixed bottom right :to="'/create'">
-      <v-icon>mdi-plus</v-icon>
-    </v-btn>
   </v-container>
 </template>
 
@@ -30,7 +74,40 @@ export default {
   },
   computed: {
     proposals() {
-      return this.store.proposals;
+      if (!this.activeCategory) return this.store.proposals;
+      return this.store.proposals.filter(p => (p.category || 'General') === this.activeCategory);
+    },
+    topProposals() {
+      return [...this.store.proposals]
+        .sort((a, b) => (b.votes?.for ?? 0) - (a.votes?.for ?? 0))
+        .slice(0, 5);
+    },
+  },
+  data() {
+    return {
+      activeCategory: '',
+      categories: [
+        'Transportation',
+        'Infrastructure',
+        'Urban Planning',
+        'Environment',
+        'Public Safety',
+        'Education',
+        'Healthcare',
+        'Social Services',
+        'Culture & Arts',
+        'Sports & Recreation',
+        'Tourism',
+        'Digital Government',
+        'Economy & Business',
+        'Utilities & Energy',
+        'Parks & Greenery',
+      ],
+    };
+  },
+  methods: {
+    filterBy(cat) {
+      this.activeCategory = cat;
     },
   },
 };
