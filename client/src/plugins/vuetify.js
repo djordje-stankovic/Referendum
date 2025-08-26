@@ -1,9 +1,9 @@
 import { createVuetify } from 'vuetify';
-import 'vuetify/styles';
-import * as components from 'vuetify/components';
-import * as directives from 'vuetify/directives';
-import { aliases, mdi } from 'vuetify/iconsets/mdi';
-import '@mdi/font/css/materialdesignicons.css';
+import 'vuetify/styles'; // Uključi globalne stilove
+import * as components from 'vuetify/components'; // Uključi sve komponente
+import * as directives from 'vuetify/directives'; // Uključi sve direktive
+import { aliases, mdi } from 'vuetify/iconsets/mdi'; // Ikone
+import '@mdi/font/css/materialdesignicons.css'; // CSS za MDI ikone
 
 export default createVuetify({
   components,
@@ -17,9 +17,9 @@ export default createVuetify({
     themes: {
       light: {
         colors: {
-          primary: '#1976D2', // Blue for buttons
-          secondary: '#4CAF50', // Green for voting
-          accent: '#FF4081', // Pink for highlights
+          primary: '#1976D2', // Plava za dugmad
+          secondary: '#4CAF50', // Zelena za glasanje
+          accent: '#FF4081', // Roza za isticanje
         },
       },
     },

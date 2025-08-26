@@ -1,118 +1,109 @@
+// stores/proposal.js
 import { defineStore } from 'pinia';
+import { useAuthStore } from './auth';
 
 export const useProposalStore = defineStore('proposal', {
   state: () => ({
     proposals: [],
     users: [],
+    municipalities: [],
+    categories: [],
+    baseUrl: 'http://localhost:3000',
   }),
   actions: {
     async fetchProposals() {
       try {
-        const response = await fetch('/api/proposals');
+        const response = await fetch(`${this.baseUrl}/api/proposals`);
+        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
         const data = await response.json();
-        // Normalize proposals: ensure votes reflect voters lengths when available
-        this.proposals = (data || []).map(p => {
-          const voters = p.voters || {};
-          const normalizedVotes = p.votes || {
-            for: (voters.for || []).length,
-            against: (voters.against || []).length,
-            abstain: (voters.abstain || []).length,
-          };
-          return { ...p, votes: normalizedVotes };
-        });
+        this.proposals = (data || []).map(p => ({
+          proposalId: p.id,
+          title: p.title,
+          municipality_id: p.municipality_id,
+          municipality: this.getMunicipalityName(p.municipality_id),
+          category_id: p.category_id,
+          category: this.getCategoryName(p.category_id),
+          author_id: p.author_id,
+          author: this.getUserName(p.author_id),
+          summary: p.summary,
+          details: {
+            problem: p.problem_description,
+            solution: p.proposed_solution,
+            cost: p.estimated_cost,
+            impact: p.expected_impact,
+          },
+          media: [],
+          votes: p.votes || { for: 0, against: 0, abstain: 0 }, // Ažuriraj sa voteCounts
+          voters: p.voters || { for: [], against: [], abstain: [] }, // Ovo može biti nepotrebno ako koristimo votes tabelu
+          status: p.status,
+          createdAt: p.created_at,
+          contributors: [],
+        }));
       } catch (error) {
         console.error('Error fetching proposals:', error);
       }
     },
     async fetchUsers() {
       try {
-        const res = await fetch('/api/users');
+        const res = await fetch(`${this.baseUrl}/api/users`);
+        if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
         this.users = await res.json();
       } catch (error) {
         console.error('Error fetching users:', error);
       }
     },
-    async addProposal(proposal) {
+    async fetchMunicipalities() {
       try {
-        const response = await fetch('/api/proposals', {
+        const res = await fetch(`${this.baseUrl}/api/municipalities`);
+        if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
+        this.municipalities = await res.json();
+      } catch (error) {
+        console.error('Error fetching municipalities:', error);
+      }
+    },
+    async fetchCategories() {
+      try {
+        const res = await fetch(`${this.baseUrl}/api/categories`);
+        if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
+        this.categories = await res.json();
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+      }
+    },
+    async voteProposal(proposalId, voteType) {
+      const authStore = useAuthStore();
+      if (!authStore.currentUser) throw new Error('User not logged in');
+      const userId = authStore.currentUser.id;
+      console.log(`Voting: proposalId=${proposalId}, userId=${userId}, voteType=${voteType}`); // Debug
+      try {
+        const response = await fetch(`${this.baseUrl}/api/proposals/${proposalId}/vote`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(proposal),
+          body: JSON.stringify({ userId, voteType }),
         });
-        const newProposal = await response.json();
-        this.proposals.push(newProposal);
-      } catch (error) {
-        console.error('Error adding proposal:', error);
-      }
-    },
-    async updateProposal(id, proposal) {
-      try {
-        const response = await fetch(`/api/proposals/${id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(proposal),
-        });
-        const updated = await response.json();
-        const idx = this.proposals.findIndex(p => p.proposalId === id);
-        if (idx !== -1) this.proposals[idx] = updated;
-        return updated;
-      } catch (error) {
-        console.error('Error updating proposal:', error);
-      }
-    },
-    async createEditRequest(id, payload) {
-      try {
-        const response = await fetch(`/api/proposals/${id}/edits`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-        return await response.json();
-      } catch (error) {
-        console.error('Error creating edit request:', error);
-      }
-    },
-    async listEdits(id) {
-      try {
-        const response = await fetch(`/api/proposals/${id}/edits`);
-        return await response.json();
-      } catch (error) {
-        console.error('Error listing edits:', error);
-        return [];
-      }
-    },
-    async mergeEdit(id, editId) {
-      try {
-        const response = await fetch(`/api/proposals/${id}/edits/${editId}/merge`, {
-          method: 'POST',
-        });
-        const data = await response.json();
-        if (data?.proposal) {
-          const idx = this.proposals.findIndex(p => p.proposalId === id);
-          if (idx !== -1) this.proposals[idx] = data.proposal;
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`HTTP error! Status: ${response.status}, Message: ${errorText}`);
         }
+        const data = await response.json();
+        // Ažuriraj proposals sa novim voteCounts
+        this.proposals = this.proposals.map(p =>
+          p.proposalId === proposalId ? { ...p, votes: data.voteCounts } : p
+        );
         return data;
       } catch (error) {
-        console.error('Error merging edit:', error);
+        console.error('Voting error:', error.message);
+        throw error;
       }
     },
-    async voteProposal(id, type) {
-      try {
-        const response = await fetch(`/api/proposals/${id}/vote`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ type }),
-        });
-        const data = await response.json();
-        const idx = this.proposals.findIndex(p => p.proposalId === id);
-        if (idx !== -1) {
-          this.proposals[idx].votes = data.votes;
-          this.proposals[idx].voteHistory = data.voteHistory;
-        }
-        return data;
-      } catch (error) {
-        console.error('Error voting:', error);
-      }
+    getMunicipalityName(id) {
+      return this.municipalities.find(m => m.id === id)?.name || 'Unknown';
+    },
+    getCategoryName(id) {
+      return this.categories.find(c => c.id === id)?.name || 'General';
+    },
+    getUserName(id) {
+      return this.users.find(u => u.id === id)?.name || `User ${id}`;
     },
   },
 });

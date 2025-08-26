@@ -2,6 +2,7 @@
   <v-container>
     <v-row>
       <v-col cols="12" md="8" lg="8">
+        <div v-if="loading">Loading proposals...</div>
         <v-card
           v-for="proposal in proposals"
           :key="proposal.proposalId"
@@ -9,6 +10,7 @@
           variant="elevated"
           @click="$router.push(`/proposal/${proposal.proposalId}`)"
           style="cursor: pointer;"
+          v-else
         >
           <v-card-item>
             <div class="d-flex align-center justify-space-between">
@@ -64,52 +66,48 @@
   </v-container>
 </template>
 
-<script>
+<script setup>
+import { computed, onMounted, ref } from 'vue';
 import { useProposalStore } from '@/stores/proposal';
-export default {
-  setup() {
-    const store = useProposalStore();
-    store.fetchProposals();
-    return { store };
-  },
-  computed: {
-    proposals() {
-      if (!this.activeCategory) return this.store.proposals;
-      return this.store.proposals.filter(p => (p.category || 'General') === this.activeCategory);
-    },
-    topProposals() {
-      return [...this.store.proposals]
-        .sort((a, b) => (b.votes?.for ?? 0) - (a.votes?.for ?? 0))
-        .slice(0, 5);
-    },
-  },
-  data() {
-    return {
-      activeCategory: '',
-      categories: [
-        'Transportation',
-        'Infrastructure',
-        'Urban Planning',
-        'Environment',
-        'Public Safety',
-        'Education',
-        'Healthcare',
-        'Social Services',
-        'Culture & Arts',
-        'Sports & Recreation',
-        'Tourism',
-        'Digital Government',
-        'Economy & Business',
-        'Utilities & Energy',
-        'Parks & Greenery',
-      ],
-    };
-  },
-  methods: {
-    filterBy(cat) {
-      this.activeCategory = cat;
-    },
-  },
+import { useAuthStore } from '@/stores/auth';
+
+const store = useProposalStore();
+const authStore = useAuthStore();
+const loading = ref(true);
+
+onMounted(async () => {
+  await Promise.all([
+    store.fetchProposals(),
+    store.fetchUsers(),
+    store.fetchMunicipalities(),
+    store.fetchCategories(),
+  ]);
+  loading.value = false;
+  console.log('Fetched Proposals:', store.proposals);
+  console.log('Current User on Mount:', authStore.currentUser);
+});
+
+// Filtriraj predloge prema opštini ulogovanog korisnika
+const proposals = computed(() => {
+  if (!authStore.currentUser) return store.proposals;
+  const userMunicipalityId = authStore.currentUser.municipality_id;
+  console.log('User Municipality ID:', userMunicipalityId);
+  console.log('Filtered Proposals:', store.proposals.filter(p => p.municipality_id === userMunicipalityId));
+  return store.proposals.filter(p => p.municipality_id === userMunicipalityId);
+});
+
+// Trending sekcija koristi sve predloge, ne filtrira po opštini
+const topProposals = computed(() => {
+  return [...store.proposals]
+    .sort((a, b) => (b.votes?.for ?? 0) - (a.votes?.for ?? 0))
+    .slice(0, 5);
+});
+
+const categories = computed(() => store.categories.map(c => c.name));
+
+const activeCategory = ref('');
+const filterBy = (cat) => {
+  activeCategory.value = cat;
 };
 </script>
 
