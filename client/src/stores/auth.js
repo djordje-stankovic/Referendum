@@ -50,6 +50,12 @@ export const useAuthStore = defineStore('auth', {
       
       return data;
     },
+    updateUser(userData) {
+      // Update current user with new data
+      if (this.currentUser) {
+        this.currentUser = { ...this.currentUser, ...userData };
+      }
+    },
     logout() {
       this.currentUser = null;
       // Clear localStorage
@@ -63,5 +69,23 @@ export const useAuthStore = defineStore('auth', {
   },
   getters: {
     userName: (state) => state.currentUser ? `${state.currentUser.first_name} ${state.currentUser.last_name}` : 'Guest',
+    token: (state) => {
+      // Try to get token from localStorage first
+      const storedToken = localStorage.getItem('auth_token');
+      if (storedToken) {
+        return storedToken;
+      }
+      
+      // If no stored token, generate a simple one for development
+      // In production, this should come from the login response
+      if (state.currentUser) {
+        // Simple token format: user_id + timestamp + secret
+        const simpleToken = btoa(`${state.currentUser.id}:${Date.now()}:dev_secret`);
+        localStorage.setItem('auth_token', simpleToken);
+        return simpleToken;
+      }
+      
+      return null;
+    },
   },
 });

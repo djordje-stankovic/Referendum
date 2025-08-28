@@ -548,8 +548,13 @@ router.get('/proposals/:id/contributions', async (req, res) => {
   try {
     const proposalId = parseInt(req.params.id);
     console.log(`🚀 [ROUTE] /proposals/${proposalId}/contributions called`);
+    console.log(`🔍 [ROUTE] About to call proposalService.getProposalHistory(${proposalId})`);
+    
     const history = await proposalService.getProposalHistory(proposalId);
+    
+    console.log(`📊 [ROUTE] getProposalHistory returned:`, history);
     console.log(`📤 [ROUTE] Sending ${history?.length || 0} history records to frontend`);
+    
     res.status(200).json(history);
   } catch (error) {
     console.error('❌ [ROUTE] Error fetching contributions:', error);

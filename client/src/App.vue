@@ -8,18 +8,18 @@
 
       <!-- Notifications -->
           <v-btn 
-      icon="mdi-bell" 
-      variant="text"
-      @click="showNotifications = true"
-      :color="hasUnreadNotifications ? 'error' : 'white'"
-    >
-      <v-badge
-        v-if="unreadCount > 0"
-        :content="unreadCount"
-        color="error"
-        dot
-      ></v-badge>
-    </v-btn>
+            variant="text"
+            @click="showNotifications = true"
+            :color="hasUnreadNotifications ? 'error' : 'white'"
+          >
+            <v-icon>mdi-bell</v-icon>
+            <v-badge
+              v-if="unreadCount > 0"
+              :content="unreadCount"
+              color="error"
+              dot
+            ></v-badge>
+          </v-btn>
 
       <v-menu location="bottom end">
         <template #activator="{ props }">

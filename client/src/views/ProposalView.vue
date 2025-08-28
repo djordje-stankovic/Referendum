@@ -838,7 +838,41 @@ onMounted(async () => {
       fetchPendingContributions()
     ]);
   });
+  
+  // Listen for avatar updates
+  window.addEventListener('avatarUpdated', handleAvatarUpdate);
 });
+
+// Handle avatar updates from other components
+const handleAvatarUpdate = async (event) => {
+  console.log('🎯 [AVATAR] handleAvatarUpdate called with event:', event.detail);
+  const { userId, avatarUrl } = event.detail;
+  
+  console.log('🎯 [AVATAR] Updating avatar for user:', userId, 'to:', avatarUrl);
+  
+  // Update contributor avatars if the updated user is a contributor
+  if (contributors.value.some(c => c.id === userId)) {
+    console.log('🎯 [AVATAR] User is a contributor, updating avatar');
+    // Update the specific contributor's avatar
+    const contributor = contributors.value.find(c => c.id === userId);
+    if (contributor) {
+      contributor.avatar = avatarUrl;
+      console.log('🎯 [AVATAR] Updated contributor avatar to:', avatarUrl);
+    }
+    
+    // Also refresh the entire contributors list to get updated avatars
+    console.log('🎯 [AVATAR] Refreshing contributors list');
+    await fetchContributors();
+  }
+  
+  // Update proposal author avatar if the updated user is the author
+  if (proposal.value.author_id === userId) {
+    console.log('🎯 [AVATAR] User is the author, updating author avatar');
+    proposal.value.author_avatar = avatarUrl;
+  }
+  
+  console.log('🎯 [AVATAR] Avatar update completed');
+};
 
 const proposal = computed(() => store.proposals.find(p => p.proposalId === parseInt(route.params.id)) || {});
 const statusColor = computed(() => proposal.value.status === 'Approved' ? 'success' : 'warning');
@@ -963,7 +997,14 @@ const handleEditSaved = () => {
 // Fetch contributors (for Contributors section)
 const fetchContributors = async () => {
   try {
-    const response = await fetch(`${authStore.baseUrl}/api/proposals/${route.params.id}/contributors`);
+    // Check if route.params.id is valid
+    const proposalId = parseInt(route.params.id);
+    if (isNaN(proposalId)) {
+      console.error('Invalid proposal ID:', route.params.id);
+      return;
+    }
+    
+    const response = await fetch(`${authStore.baseUrl}/api/proposals/${proposalId}/contributors`);
     if (!response.ok) {
       console.error('Error fetching contributors:', response.statusText);
       return;
@@ -980,17 +1021,45 @@ const fetchContributors = async () => {
       avatar: `https://i.pravatar.cc/40?img=${(proposal.value.author_id || 1) % 70 + 1}`
     };
     
-    // Transform contributor data
-    const contributorsList = data.map(contributor => ({
-      id: contributor.id,
-      name: contributor.full_name,
-      role: 'Contributor',
-      share: 15, // Default share for contributors
-      avatar: `https://i.pravatar.cc/40?img=${contributor.id % 70 + 1}`
+    // Transform contributor data with real avatars
+    const contributorsList = await Promise.all(data.map(async (contributor) => {
+      // Check if contributor.id is valid
+      if (!contributor.id || isNaN(contributor.id)) {
+        console.error('Invalid contributor ID:', contributor.id);
+        return {
+          id: 0,
+          name: contributor.full_name || 'Unknown',
+          role: 'Contributor',
+          share: 15,
+          avatar: `https://i.pravatar.cc/40?img=1`
+        };
+      }
+      
+      // Try to get real avatar from database
+      let avatarUrl = `https://i.pravatar.cc/40?img=${contributor.id % 70 + 1}`; // fallback
+      
+      try {
+        const avatarResponse = await fetch(`${authStore.baseUrl}/api/users/${contributor.id}/avatar`);
+        if (avatarResponse.ok) {
+          const avatarData = await avatarResponse.json();
+          avatarUrl = avatarData.avatarUrl;
+        }
+      } catch (error) {
+        console.log('Using fallback avatar for user:', contributor.id);
+      }
+      
+      return {
+        id: contributor.id,
+        name: contributor.full_name,
+        role: 'Contributor',
+        share: 15, // Default share for contributors
+        avatar: avatarUrl
+      };
     }));
     
-    // Combine author and contributors
-    contributors.value = [authorContributor, ...contributorsList];
+    // Filter out invalid contributors and combine with author
+    const validContributors = contributorsList.filter(c => c.id !== 0);
+    contributors.value = [authorContributor, ...validContributors];
   } catch (error) {
     console.error('Error fetching contributors:', error);
   }

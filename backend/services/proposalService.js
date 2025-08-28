@@ -880,6 +880,7 @@ async function getAllProposalContributions(proposalId) {
 
 // Function to get proposal history (all actions on a proposal)
 async function getProposalHistory(proposalId) {
+  console.log(`🚨 [DEBUG] getProposalHistory function called with proposalId: ${proposalId}`);
   try {
     console.log(`🔍 [CONTRIBUTION HISTORY] Fetching history for proposal ${proposalId}`);
     

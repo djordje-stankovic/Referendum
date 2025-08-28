@@ -14,6 +14,10 @@
 --     email VARCHAR(100) UNIQUE NOT NULL,
 --     password_hash VARCHAR(255) NOT NULL,
 --     full_name VARCHAR(100),
+--     first_name VARCHAR(50) NOT NULL,
+--     last_name VARCHAR(50) NOT NULL,
+--     bio TEXT,
+--     avatar VARCHAR(500),
 --     municipality_id INT REFERENCES municipalities(municipality_id),
 --     role VARCHAR(20) DEFAULT 'user', -- Zamena ENUM za fleksibilnost
 --     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
