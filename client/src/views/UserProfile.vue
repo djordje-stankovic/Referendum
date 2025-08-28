@@ -16,7 +16,7 @@ export default {
     return { user: null };
   },
   async created() {
-    const res = await fetch(`/api/users/${this.$route.params.id}`);
+    const res = await fetch(`/users/${this.$route.params.id}`);
     this.user = await res.json();
   },
 };

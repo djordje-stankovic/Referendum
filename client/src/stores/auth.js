@@ -14,7 +14,7 @@ export const useAuthStore = defineStore('auth', {
   actions: {
     async fetchMunicipalities() {
       try {
-        const res = await fetch(`${this.baseUrl}/api/auth/municipalities`);
+        const res = await fetch(`${this.baseUrl}/api/municipalities`);
         if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
         const data = await res.json();
         this.municipalities = data;
@@ -24,7 +24,7 @@ export const useAuthStore = defineStore('auth', {
       }
     },
     async registerUser(userData) {
-      const response = await fetch(`${this.baseUrl}/api/auth/register`, {
+              const response = await fetch(`${this.baseUrl}/api/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(userData),
@@ -35,7 +35,7 @@ export const useAuthStore = defineStore('auth', {
       return data;
     },
     async loginUser(credentials) {
-      const response = await fetch(`${this.baseUrl}/api/auth/login`, {
+              const response = await fetch(`${this.baseUrl}/api/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(credentials),
@@ -44,10 +44,18 @@ export const useAuthStore = defineStore('auth', {
       if (!response.ok) throw new Error(data.error || 'Login failed');
       this.currentUser = data.user;
       console.log('Logged in user:', this.currentUser);
+      
+      // Dispatch event to notify other components that user has logged in
+      window.dispatchEvent(new CustomEvent('userLoggedIn', { detail: { user: data.user } }));
+      
       return data;
     },
     logout() {
       this.currentUser = null;
+      // Clear localStorage
+      localStorage.removeItem('auth');
+      // Clear any other stored data
+      sessionStorage.clear();
     },
     isAuthenticated() {
       return !!this.currentUser;

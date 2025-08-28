@@ -105,5 +105,51 @@ export const useProposalStore = defineStore('proposal', {
     getUserName(id) {
       return this.users.find(u => u.id === id)?.name || `User ${id}`;
     },
+    async createProposal(proposalData) {
+      try {
+        const response = await fetch(`${this.baseUrl}/api/proposals`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(proposalData),
+        });
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`HTTP error! Status: ${response.status}, Message: ${errorText}`);
+        }
+        
+        const newProposal = await response.json();
+        
+        // Add to local state
+        this.proposals.push({
+          proposalId: newProposal.id,
+          title: newProposal.title,
+          municipality_id: newProposal.municipality_id,
+          municipality: newProposal.municipality,
+          category_id: newProposal.category_id,
+          category: newProposal.category,
+          author_id: newProposal.author_id,
+          author: this.getUserName(newProposal.author_id),
+          summary: newProposal.summary,
+          details: {
+            problem: newProposal.problem_description,
+            solution: newProposal.proposed_solution,
+            cost: newProposal.estimated_cost,
+            impact: newProposal.expected_impact,
+          },
+          media: newProposal.attachments || [],
+          votes: { for: 0, against: 0, abstain: 0 },
+          voters: { for: [], against: [], abstain: [] },
+          status: newProposal.status,
+          createdAt: newProposal.created_at,
+          contributors: [],
+        });
+        
+        return newProposal;
+      } catch (error) {
+        console.error('Error creating proposal:', error);
+        throw error;
+      }
+    },
   },
 });
