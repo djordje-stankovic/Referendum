@@ -1,0 +1,39 @@
+class AbstractRepository {
+    async findAll() {
+      throw new Error('Method not implemented');
+    }
+  
+    async findById(id) {
+      throw new Error('Method not implemented');
+    }
+  
+    async create(data) {
+      throw new Error('Method not implemented');
+    }
+  
+    async update(id, data) {
+      throw new Error('Method not implemented');
+    }
+  
+    async delete(id) {
+      throw new Error('Method not implemented');
+    }
+  
+    async vote(id, voteType) {
+      throw new Error('Method not implemented');
+    }
+  
+    async getEdits(id) {
+      throw new Error('Method not implemented');
+    }
+  
+    async createEdit(id, data) {
+      throw new Error('Method not implemented');
+    }
+  
+    async mergeEdit(proposalId, editId) {
+      throw new Error('Method not implemented');
+    }
+  }
+  
+  module.exports = AbstractRepository;

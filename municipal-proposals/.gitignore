@@ -1,0 +1,20 @@
+# Node
+node_modules/
+**/node_modules/
+
+# Builds
+dist/
+**/dist/
+
+# Local env
+.env
+.env.*
+
+# Editor/OS
+.DS_Store
+Thumbs.db
+*.log
+
+# Client public assets fetched at install time
+municipal-proposals/client/public/assets/**
+!municipal-proposals/client/public/.gitkeep
